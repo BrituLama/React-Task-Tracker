@@ -1,13 +1,9 @@
-import { useState, useEffect } from "react";
-import { BrowserRouter as Router, Route } from "react-router-dom";
-import About from "./components/About";
-import AddForm from "./components/AddForm";
-import Footer from "./components/Footer";
-import Header from "./components/Header";
-import Tasks from "./components/Tasks";
-import {DataProvider} from './context/DataContext'
+import { createContext, useState, useEffect } from "react";
 
-function App() {
+const DataContext = createContext()
+
+export const DataProvider = ({children}) => {
+
   const [showTask, setShowTask] = useState(false)
 
   const [tasks, setTasks] = useState([]);
@@ -47,7 +43,12 @@ function App() {
     setTasks([...tasks, data]);
   };
 
-
+  const onDelete = async(id) => {
+    await fetch(`http://localhost:5000/tasks/${id}`,{
+      method:'DELETE'
+    })
+    setTasks(tasks.filter((task) => task.id !== id));
+  };
 
   const toggleReminder = async(id) => {
     const toggleTask = await fetchTask(id)
@@ -62,30 +63,21 @@ function App() {
     })
     const data = await res.json()
 
-    
+    setTasks(
+      tasks.map((task) =>
+        task.id === id ? { ...task, reminder: data.reminder } : task
+      )
+    );
   };
-
-  return (
-    <>
-      <DataProvider>
-        <Router>
-          <div className="container">
-            <Header toggleShowTask = {() => setShowTask(!showTask)}/>
-            {showTask && <AddForm add={addForm} />}
-            {tasks.length > 0 ? (
-              <Tasks />
-            ) : (
-              "Nothing to display"
-            )}
-
-              
-              <Route path='/about' component={About} />
-            <Footer />
-          </div>
-        </Router>
-      </DataProvider>
-    </>
-  );
+  
+    return (
+        <DataContext.Provider value={{ 
+          tasks, onDelete, toggleReminder, 
+          setTasks
+          }}>
+            {children}
+        </DataContext.Provider>
+    )
 }
 
-export default App;
+export default DataContext
